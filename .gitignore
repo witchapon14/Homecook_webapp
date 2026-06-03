@@ -1,0 +1,8 @@
+node_modules/
+dist/
+
+backend/__pycache__/
+backend/data/
+backend/backups/
+
+.DS_Store
