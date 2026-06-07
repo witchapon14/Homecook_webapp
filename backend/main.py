@@ -60,8 +60,16 @@ DEFAULT_INGREDIENTS = [
 ]
 
 
+def decimal_value(value):
+    if value is None:
+        return Decimal("0")
+    if isinstance(value, Decimal):
+        return value
+    return Decimal(str(value))
+
+
 def money(value):
-    return Decimal(value or 0).quantize(Decimal("0.01"))
+    return decimal_value(value).quantize(Decimal("0.01"))
 
 
 def serialize_purchase(purchase: Purchase) -> PurchaseOut:
@@ -241,7 +249,7 @@ def dashboard(db: Session = Depends(get_db)):
     next_month = (month_start.replace(day=28) + timedelta(days=4)).replace(day=1)
 
     today_purchases = db.query(Purchase).filter(Purchase.purchase_date == today).all()
-    today_total = sum((p.total_amount for p in today_purchases), Decimal("0"))
+    today_total = sum((money(p.total_amount) for p in today_purchases), Decimal("0"))
     today_items = (
         db.query(PurchaseItem)
         .join(Purchase)
@@ -256,7 +264,7 @@ def dashboard(db: Session = Depends(get_db)):
         .filter(and_(Purchase.purchase_date >= month_start, Purchase.purchase_date < next_month))
         .all()
     )
-    month_total = sum((p.total_amount for p in month_purchases), Decimal("0"))
+    month_total = sum((money(p.total_amount) for p in month_purchases), Decimal("0"))
     month_item_count = (
         db.query(PurchaseItem)
         .join(Purchase)
@@ -306,7 +314,7 @@ def reports(
     counts_by_label = {}
     for purchase in purchases:
         label = purchase.purchase_date.strftime("%Y-%m-%d" if scope in {"day", "week", "month"} else "%Y-%m")
-        totals_by_label[label] = totals_by_label.get(label, Decimal("0")) + purchase.total_amount
+        totals_by_label[label] = totals_by_label.get(label, Decimal("0")) + money(purchase.total_amount)
         counts_by_label[label] = counts_by_label.get(label, 0) + 1
 
     item_count = (
@@ -334,7 +342,7 @@ def reports(
 
     return ReportOut(
         scope=scope,
-        total_amount=money(sum((p.total_amount for p in purchases), Decimal("0"))),
+        total_amount=money(sum((money(p.total_amount) for p in purchases), Decimal("0"))),
         item_count=item_count,
         recorded_days=len({p.purchase_date for p in purchases}),
         series=[

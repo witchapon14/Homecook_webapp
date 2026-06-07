@@ -26,7 +26,7 @@ class Purchase(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     purchase_date = Column(Date, nullable=False, index=True)
-    total_amount = Column(Numeric(12, 2, asdecimal=False), default=0, nullable=False)
+    total_amount = Column(Numeric(12, 2), default=0, nullable=False)
     created_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=now_utc, onupdate=now_utc, nullable=False)
 
@@ -39,10 +39,10 @@ class PurchaseItem(Base):
     id = Column(Integer, primary_key=True, index=True)
     purchase_id = Column(Integer, ForeignKey("purchases.id", ondelete="CASCADE"), nullable=False)
     ingredient_id = Column(Integer, ForeignKey("ingredients.id"), nullable=False)
-    quantity = Column(Numeric(12, 2, asdecimal=False), nullable=False)
+    quantity = Column(Numeric(12, 2), nullable=False)
     unit = Column(String(40), nullable=False)
-    unit_price = Column(Numeric(12, 2, asdecimal=False), nullable=False)
-    amount = Column(Numeric(12, 2, asdecimal=False), nullable=False)
+    unit_price = Column(Numeric(12, 2), nullable=False)
+    amount = Column(Numeric(12, 2), nullable=False)
 
     purchase = relationship("Purchase", back_populates="items")
     ingredient = relationship("Ingredient", back_populates="items")
