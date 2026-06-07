@@ -1,11 +1,12 @@
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
+from hmac import compare_digest
 import os
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from openpyxl import Workbook
 from sqlalchemy import and_, extract, func
 from sqlalchemy.orm import Session, joinedload
@@ -44,6 +45,26 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+API_KEY = os.getenv("API_KEY", "")
+APP_PASSWORD = os.getenv("APP_PASSWORD", "")
+AUTH_DISABLED = os.getenv("DISABLE_AUTH", "").lower() == "true"
+PUBLIC_PATHS = {"/health"}
+
+
+@app.middleware("http")
+async def require_app_auth(request: Request, call_next):
+    if request.method == "OPTIONS" or request.url.path in PUBLIC_PATHS:
+        return await call_next(request)
+    if AUTH_DISABLED:
+        return await call_next(request)
+    if not API_KEY or not APP_PASSWORD:
+        return JSONResponse({"detail": "API auth is not configured"}, status_code=503)
+    if API_KEY and not compare_digest(request.headers.get("x-api-key", ""), API_KEY):
+        return JSONResponse({"detail": "Invalid API key"}, status_code=401)
+    if APP_PASSWORD and not compare_digest(request.headers.get("x-app-password", ""), APP_PASSWORD):
+        return JSONResponse({"detail": "Invalid app password"}, status_code=401)
+    return await call_next(request)
 
 DEFAULT_INGREDIENTS = [
     ("หมู", "กิโลกรัม"),

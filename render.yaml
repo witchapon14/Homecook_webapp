@@ -13,6 +13,10 @@ services:
           property: connectionString
       - key: FRONTEND_ORIGINS
         value: https://homecook-webapp.vercel.app
+      - key: API_KEY
+        sync: false
+      - key: APP_PASSWORD
+        sync: false
 
 databases:
   - name: restaurant-inventory-db

@@ -7,7 +7,9 @@ import {
   Download,
   Edit3,
   History,
+  KeyRound,
   LayoutDashboard,
+  LogOut,
   PackagePlus,
   Plus,
   Save,
@@ -29,16 +31,25 @@ import {
 import "./styles.css";
 
 const API_BASE = (import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000").replace(/\/+$/, "");
+const API_KEY = import.meta.env.VITE_API_KEY || "";
+const PASSWORD_STORAGE_KEY = "homecook_app_password";
 const UNITS = ["กิโลกรัม", "กรัม", "แพ็ค", "ถุง", "ลัง", "ขวด", "ฟอง"];
 
 const money = (value) =>
   new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(Number(value || 0));
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
+const getStoredPassword = () => sessionStorage.getItem(PASSWORD_STORAGE_KEY) || "";
 
 async function api(path, options = {}) {
+  const appPassword = getStoredPassword();
   const response = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    headers: {
+      "Content-Type": "application/json",
+      ...(API_KEY ? { "X-API-Key": API_KEY } : {}),
+      ...(appPassword ? { "X-App-Password": appPassword } : {}),
+      ...(options.headers || {})
+    },
     ...options
   });
   if (!response.ok) {
@@ -51,6 +62,67 @@ async function api(path, options = {}) {
 }
 
 function App() {
+  const [authenticated, setAuthenticated] = useState(Boolean(getStoredPassword()));
+
+  return authenticated
+    ? <AuthenticatedApp onLock={() => setAuthenticated(false)} />
+    : <PasswordGate onUnlock={() => setAuthenticated(true)} />;
+}
+
+function PasswordGate({ onUnlock }) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [checking, setChecking] = useState(false);
+
+  const submit = async (event) => {
+    event.preventDefault();
+    setChecking(true);
+    setError("");
+    sessionStorage.setItem(PASSWORD_STORAGE_KEY, password);
+    try {
+      await api("/ingredients");
+      onUnlock();
+    } catch (error) {
+      sessionStorage.removeItem(PASSWORD_STORAGE_KEY);
+      setError(error.message.includes("Invalid") ? "รหัสผ่านไม่ถูกต้อง" : `เชื่อมต่อ backend ไม่ได้: ${error.message}`);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  return (
+    <div className="app-bg grid min-h-screen place-items-center px-4 text-ink">
+      <form className="paper-card w-full max-w-sm rounded-lg p-5" onSubmit={submit}>
+        <div className="mb-4 flex items-center gap-3">
+          <div className="grid h-11 w-11 place-items-center rounded-lg border border-tamarind/25 bg-honey text-brown shadow-[0_3px_0_#7a421e]">
+            <KeyRound size={22} />
+          </div>
+          <div>
+            <h1 className="brand-title text-xl font-bold leading-tight">ฝีมือแม่</h1>
+            <p className="text-xs font-semibold text-tamarind/65">ใส่รหัสผ่านเพื่อเข้าใช้งาน</p>
+          </div>
+        </div>
+        <label className="field">
+          <span>รหัสผ่าน</span>
+          <input
+            className="input"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+          />
+        </label>
+        {error && <div className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-800">{error}</div>}
+        <button className="primary-btn mt-4 w-full justify-center" type="submit" disabled={checking}>
+          <KeyRound size={18} /> {checking ? "กำลังตรวจสอบ" : "เข้าใช้งาน"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function AuthenticatedApp({ onLock }) {
   const [view, setView] = useState("dashboard");
   const [ingredients, setIngredients] = useState([]);
   const [purchases, setPurchases] = useState([]);
@@ -105,6 +177,11 @@ function App() {
     notify("ลบรายการซื้อแล้ว");
   };
 
+  const lockApp = () => {
+    sessionStorage.removeItem(PASSWORD_STORAGE_KEY);
+    onLock();
+  };
+
   const pages = {
     dashboard: <Dashboard data={dashboard} purchases={purchases} onAdd={() => setView("purchase")} />,
     purchase: (
@@ -150,6 +227,9 @@ function App() {
               <p className="text-xs font-semibold text-tamarind/65">บันทึกวัตถุดิบประจำวันให้อุ่นใจเหมือนจดสมุดครัว</p>
             </div>
           </div>
+          <button className="icon-btn" onClick={lockApp} title="ออกจากระบบ">
+            <LogOut size={18} />
+          </button>
         </div>
       </header>
 
@@ -494,8 +574,17 @@ function ReportsPage({ report, setReport, notify }) {
     setScope(nextScope);
     setReport(await api(`/reports?scope=${nextScope}`));
   };
-  const exportExcel = () => {
-    window.open(`${API_BASE}/export/excel`, "_blank");
+  const exportExcel = async () => {
+    const response = await api("/export/excel");
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `inventory-export-${todayIso()}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
     notify("เริ่มดาวน์โหลด Excel");
   };
 

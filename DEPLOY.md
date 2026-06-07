@@ -90,6 +90,7 @@ https://YOUR_RENDER_SERVICE.onrender.com/health
 
 ```text
 VITE_API_BASE=https://YOUR_RENDER_SERVICE.onrender.com
+VITE_API_KEY=ตั้งค่าเป็นข้อความลับเดียวกับ API_KEY บน Render
 ```
 
 ถ้า Vercel ขึ้นว่า `No Output Directory named "dist" found` ทั้งที่ build ผ่าน ให้ตรวจ Project Settings อีกครั้ง:
@@ -125,7 +126,11 @@ https://restaurant-inventory.vercel.app
 
 ```text
 FRONTEND_ORIGINS=https://restaurant-inventory.vercel.app
+API_KEY=ตั้งค่าเป็นข้อความลับเดียวกับ VITE_API_KEY บน Vercel
+APP_PASSWORD=รหัสผ่านที่ต้องใช้ก่อนเข้าเว็บ
 ```
+
+ถ้าไม่ได้ตั้ง `API_KEY` หรือ `APP_PASSWORD` backend จะไม่เปิดข้อมูลและจะตอบ `API auth is not configured` เพื่อกันการปล่อย API แบบ public โดยไม่ได้ตั้งใจ
 
 จากนั้นกด Manual Deploy หรือ Restart service
 
