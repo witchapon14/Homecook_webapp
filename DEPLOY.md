@@ -83,7 +83,7 @@ https://YOUR_RENDER_SERVICE.onrender.com/health
 3. Framework Preset ควรเป็น `Vite`
 4. Root Directory ให้เว้นว่างไว้ หรือเลือก root ของ repo นี้ ห้ามเลือก `backend`
 5. Install Command ใช้ `npm ci --include=optional`
-6. Build Command ใช้ `npm run build && test -f dist/index.html`
+6. Build Command ใช้ `npm run build`
 7. Output Directory ใช้ `dist`
 8. Node.js Version ใช้ `22.x`
 9. เพิ่ม Environment Variable:
@@ -97,6 +97,7 @@ VITE_API_BASE=https://YOUR_RENDER_SERVICE.onrender.com
 - Root Directory ต้องเป็น root repo ที่มี `package.json`, `index.html`, `src/`, และ `vercel.json`
 - Output Directory ต้องเป็น `dist`
 - Build Command ต้องไม่ถูก override เป็นคำสั่งอื่น
+- หลัง build ต้องมี log `[verify-dist] Found dist/index.html.`
 - Deploy ต้องใช้ commit ล่าสุดที่มี `vercel.json`
 
 ค่าใน `vercel.json` ที่เตรียมไว้:
@@ -105,7 +106,7 @@ VITE_API_BASE=https://YOUR_RENDER_SERVICE.onrender.com
 {
   "framework": "vite",
   "installCommand": "npm ci --include=optional",
-  "buildCommand": "npm run build && test -f dist/index.html",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist"
 }
 ```

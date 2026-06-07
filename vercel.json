@@ -1,6 +1,6 @@
 {
   "framework": "vite",
   "installCommand": "npm ci --include=optional",
-  "buildCommand": "npm run build && test -f dist/index.html",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist"
 }
