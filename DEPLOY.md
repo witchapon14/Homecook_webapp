@@ -81,12 +81,33 @@ https://YOUR_RENDER_SERVICE.onrender.com/health
 1. เข้า Vercel
 2. Import GitHub repo นี้
 3. Framework Preset ควรเป็น `Vite`
-4. Build Command ใช้ `npm run build`
-5. Output Directory ใช้ `dist`
-6. เพิ่ม Environment Variable:
+4. Root Directory ให้เว้นว่างไว้ หรือเลือก root ของ repo นี้ ห้ามเลือก `backend`
+5. Install Command ใช้ `npm ci --include=optional`
+6. Build Command ใช้ `npm run build && test -f dist/index.html`
+7. Output Directory ใช้ `dist`
+8. Node.js Version ใช้ `22.x`
+9. เพิ่ม Environment Variable:
 
 ```text
 VITE_API_BASE=https://YOUR_RENDER_SERVICE.onrender.com
+```
+
+ถ้า Vercel ขึ้นว่า `No Output Directory named "dist" found` ทั้งที่ build ผ่าน ให้ตรวจ Project Settings อีกครั้ง:
+
+- Root Directory ต้องเป็น root repo ที่มี `package.json`, `index.html`, `src/`, และ `vercel.json`
+- Output Directory ต้องเป็น `dist`
+- Build Command ต้องไม่ถูก override เป็นคำสั่งอื่น
+- Deploy ต้องใช้ commit ล่าสุดที่มี `vercel.json`
+
+ค่าใน `vercel.json` ที่เตรียมไว้:
+
+```json
+{
+  "framework": "vite",
+  "installCommand": "npm ci --include=optional",
+  "buildCommand": "npm run build && test -f dist/index.html",
+  "outputDirectory": "dist"
+}
 ```
 
 Deploy แล้ว Vercel จะได้ URL เช่น:
