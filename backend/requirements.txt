@@ -3,3 +3,4 @@ uvicorn[standard]
 sqlalchemy
 openpyxl
 pydantic
+psycopg2-binary

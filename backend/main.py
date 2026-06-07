@@ -2,7 +2,6 @@ from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 import os
 from pathlib import Path
-import shutil
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,7 +10,7 @@ from openpyxl import Workbook
 from sqlalchemy import and_, extract, func
 from sqlalchemy.orm import Session, joinedload
 
-from database import BASE_DIR, Base, DATA_DIR, engine, get_db
+from database import Base, engine, get_db
 from models import Ingredient, Purchase, PurchaseItem
 from schemas import (
     DashboardOut,
@@ -382,18 +381,53 @@ def export_excel(
                 float(item.amount),
             ]
         )
-    file_path = DATA_DIR / f"inventory-export-{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"
+    export_dir = Path(__file__).resolve().parent / "exports"
+    export_dir.mkdir(exist_ok=True)
+    file_path = export_dir / f"inventory-export-{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"
     workbook.save(file_path)
     return FileResponse(file_path, filename=file_path.name)
 
 
 @app.post("/backup")
-def backup_database():
-    source = DATA_DIR / "inventory.db"
-    if not source.exists():
-        raise HTTPException(status_code=404, detail="Database file not found")
-    backup_dir = BASE_DIR / "backups"
+def backup_database(db: Session = Depends(get_db)):
+    backup_dir = Path(__file__).resolve().parent / "backups"
     backup_dir.mkdir(exist_ok=True)
-    target = backup_dir / f"inventory-backup-{datetime.now().strftime('%Y%m%d%H%M%S')}.db"
-    shutil.copy2(source, target)
+    target = backup_dir / f"inventory-backup-{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"
+
+    workbook = Workbook()
+    ingredients_sheet = workbook.active
+    ingredients_sheet.title = "ingredients"
+    ingredients_sheet.append(["id", "name", "unit", "created_at"])
+    for ingredient in db.query(Ingredient).order_by(Ingredient.id.asc()).all():
+        ingredients_sheet.append([ingredient.id, ingredient.name, ingredient.unit, ingredient.created_at.isoformat()])
+
+    purchases_sheet = workbook.create_sheet("purchases")
+    purchases_sheet.append(["id", "purchase_date", "total_amount", "created_at", "updated_at"])
+    for purchase in db.query(Purchase).order_by(Purchase.id.asc()).all():
+        purchases_sheet.append(
+            [
+                purchase.id,
+                purchase.purchase_date.isoformat(),
+                float(purchase.total_amount),
+                purchase.created_at.isoformat(),
+                purchase.updated_at.isoformat(),
+            ]
+        )
+
+    items_sheet = workbook.create_sheet("purchase_items")
+    items_sheet.append(["id", "purchase_id", "ingredient_id", "quantity", "unit", "unit_price", "amount"])
+    for item in db.query(PurchaseItem).order_by(PurchaseItem.id.asc()).all():
+        items_sheet.append(
+            [
+                item.id,
+                item.purchase_id,
+                item.ingredient_id,
+                float(item.quantity),
+                item.unit,
+                float(item.unit_price),
+                float(item.amount),
+            ]
+        )
+
+    workbook.save(target)
     return {"backup_file": str(target)}
