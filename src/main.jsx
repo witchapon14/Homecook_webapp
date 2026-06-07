@@ -28,7 +28,7 @@ import {
 } from "recharts";
 import "./styles.css";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
+const API_BASE = (import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000").replace(/\/+$/, "");
 const UNITS = ["กิโลกรัม", "กรัม", "แพ็ค", "ถุง", "ลัง", "ขวด", "ฟอง"];
 
 const money = (value) =>

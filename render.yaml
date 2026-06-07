@@ -12,7 +12,7 @@ services:
           name: restaurant-inventory-db
           property: connectionString
       - key: FRONTEND_ORIGINS
-        value: https://your-vercel-app.vercel.app
+        value: https://homecook-webapp.vercel.app
 
 databases:
   - name: restaurant-inventory-db
